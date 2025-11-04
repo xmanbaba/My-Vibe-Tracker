@@ -17,8 +17,7 @@ export interface Project {
   lastSolvedProblem: string;
   nextProblemToSolve: string;
   githubRef: string;
-  firebaseRulesFileUrl?: string;
-  firebaseRulesFileName?: string;
+  firebaseRulesUrl?: string;
   notes: string;
   lastUpdatedAt: number;
 }

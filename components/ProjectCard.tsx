@@ -30,6 +30,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onEdit, onDelete }) 
         </div>
         <p className="text-sm text-slate-500 mt-1">Last chat: {new Date(project.lastChatDate).toLocaleDateString()}</p>
         <p className="text-sm text-slate-600 mt-3 line-clamp-2" title={project.chatThreadTitle}>{project.chatThreadTitle}</p>
+        {project.firebaseRulesUrl && (
+          <a 
+            href={project.firebaseRulesUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-xs text-indigo-600 hover:underline mt-2 block"
+            onClick={(e) => e.stopPropagation()}
+          >
+            View Firebase Rules
+          </a>
+        )}
         <div className="mt-4 space-y-1 text-xs text-slate-500">
             <p>Last Updated: {new Date(project.lastUpdatedAt).toLocaleString()}</p>
         </div>

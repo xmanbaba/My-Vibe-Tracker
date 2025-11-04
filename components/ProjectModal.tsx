@@ -1,14 +1,13 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { Project } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { db, storage } from '../services/firebase';
+import { db } from '../services/firebase';
 import { VIBE_PLATFORM_OPTIONS } from '../constants';
 import Modal from './common/Modal';
 import Button from './common/Button';
 import Input from './common/Input';
 import Select from './common/Select';
 import Textarea from './common/Textarea';
-import Icon from './common/Icon';
 import Spinner from './common/Spinner';
 
 interface ProjectModalProps {
@@ -32,10 +31,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project, o
     nextProblemToSolve: '',
     githubRef: '',
     notes: '',
-    firebaseRulesFileUrl: '',
-    firebaseRulesFileName: '',
+    firebaseRulesUrl: '',
   });
-  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -67,8 +64,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project, o
         nextProblemToSolve: project.nextProblemToSolve,
         githubRef: project.githubRef,
         notes: project.notes,
-        firebaseRulesFileUrl: project.firebaseRulesFileUrl,
-        firebaseRulesFileName: project.firebaseRulesFileName,
+        firebaseRulesUrl: project.firebaseRulesUrl || '',
       });
     } else {
       setFormData({
@@ -83,23 +79,15 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project, o
         nextProblemToSolve: '',
         githubRef: '',
         notes: '',
-        firebaseRulesFileUrl: '',
-        firebaseRulesFileName: '',
+        firebaseRulesUrl: '',
       });
     }
-    setFile(null);
     setError('');
   }, [project, isOpen]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -112,21 +100,10 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project, o
     setError('');
 
     try {
-      let fileUrl = formData.firebaseRulesFileUrl || '';
-      let fileName = formData.firebaseRulesFileName || '';
-
-      if (file) {
-        const { url, name } = await storage.uploadFile(user.uid, file);
-        fileUrl = url;
-        fileName = name;
-      }
-      
-      const dataToSave = { ...formData, firebaseRulesFileUrl: fileUrl, firebaseRulesFileName: fileName };
-
       if (project) {
-        await db.updateProject(project.id, dataToSave);
+        await db.updateProject(project.id, formData);
       } else {
-        await db.addProject(user.uid, dataToSave);
+        await db.addProject(user.uid, formData);
       }
       onSave();
       onClose();
@@ -164,26 +141,14 @@ const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, project, o
         <Textarea label="Next Problem to Solve" name="nextProblemToSolve" value={formData.nextProblemToSolve} onChange={handleChange} />
         <Textarea label="Notes / Key Decisions" name="notes" value={formData.notes} onChange={handleChange} />
         
-        <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Firebase Rules Snapshot</label>
-            <div className="mt-1 flex items-center justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                    <Icon name="file" className="mx-auto h-12 w-12 text-slate-400" />
-                    <div className="flex text-sm text-slate-600">
-                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                            <span>Upload a file</span>
-                            <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} />
-                        </label>
-                        <p className="pl-1">or drag and drop</p>
-                    </div>
-                     {file ? (
-                        <p className="text-xs text-slate-500">{file.name}</p>
-                     ) : formData.firebaseRulesFileName ? (
-                        <a href={formData.firebaseRulesFileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 underline">{formData.firebaseRulesFileName}</a>
-                     ) : <p className="text-xs text-slate-500">JSON, TXT, etc. up to 10MB</p>}
-                </div>
-            </div>
-        </div>
+        <Input 
+          label="Firebase Rules URL" 
+          name="firebaseRulesUrl" 
+          type="url" 
+          value={formData.firebaseRulesUrl} 
+          onChange={handleChange} 
+          placeholder="https://example.com/my-rules.json" 
+        />
 
         <div className="flex justify-end pt-4 gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
