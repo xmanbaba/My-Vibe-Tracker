@@ -1,0 +1,5 @@
+{
+  "name": "My Vibe Tracker",
+  "description": "A simple single-page web app to help track app development progress and LLM chat threads when working on multiple projects.",
+  "requestFramePermissions": []
+}
