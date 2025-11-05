@@ -36,6 +36,26 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Validate Firebase configuration
+const validateConfig = () => {
+  const requiredKeys = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId'
+  ];
+  
+  for (const key of requiredKeys) {
+    if (!firebaseConfig[key as keyof typeof firebaseConfig]) {
+      console.error(`Missing Firebase config: VITE_FIREBASE_${key.toUpperCase()}`);
+    }
+  }
+};
+
+validateConfig();
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const authInstance = getAuth(app);
