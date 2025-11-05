@@ -1,4 +1,4 @@
-// REAL FIREBASE SERVICE
+// REAL FIREBASE SERVICE - IMPROVED GOOGLE SIGN-IN
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -7,6 +7,7 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   User as FirebaseUser
@@ -68,10 +69,24 @@ const convertFirebaseUser = (firebaseUser: FirebaseUser): User => ({
   displayName: firebaseUser.displayName,
 });
 
-// Check for redirect result on app load
-getRedirectResult(authInstance).catch((error) => {
-  console.error('Google Sign-In redirect error:', error);
-});
+// Check for redirect result on app load and handle it
+getRedirectResult(authInstance)
+  .then((result) => {
+    if (result) {
+      console.log('Google Sign-In successful after redirect:', result.user.email);
+    }
+  })
+  .catch((error) => {
+    console.error('Google Sign-In redirect error:', error);
+    // Show user-friendly error
+    if (error.code === 'auth/popup-blocked') {
+      alert('Popup was blocked. Please allow popups for this site and try again.');
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      // User closed popup, ignore this error
+    } else {
+      alert(`Sign-in error: ${error.message}`);
+    }
+  });
 
 // --- AUTH SERVICE ---
 export const auth = {
@@ -93,11 +108,21 @@ export const auth = {
 
   signInWithGoogle: async (): Promise<{ user: User }> => {
     const provider = new GoogleAuthProvider();
-    // Use redirect instead of popup to avoid cross-origin warnings
-    await signInWithRedirect(authInstance, provider);
-    // Note: This will redirect the page, so we return a dummy value
-    // The actual user will be available after redirect via onAuthStateChanged
-    return { user: { uid: '', email: null, displayName: null } };
+    
+    // Try popup first (better UX), fall back to redirect if blocked
+    try {
+      const result = await signInWithPopup(authInstance, provider);
+      return { user: convertFirebaseUser(result.user) };
+    } catch (error: any) {
+      // If popup is blocked or fails, try redirect
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        console.log('Popup blocked, trying redirect...');
+        await signInWithRedirect(authInstance, provider);
+        // Redirect will happen, return placeholder
+        return { user: { uid: '', email: null, displayName: null } };
+      }
+      throw error;
+    }
   },
 
   signOut: async (): Promise<void> => {
@@ -150,7 +175,6 @@ export const db = {
     
     await updateDoc(projectRef, updatedData);
     
-    // Return the updated project (in a real app, you might want to fetch it)
     return {
       id: projectId,
       ...updatedData,
